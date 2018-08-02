@@ -1,2 +1,0 @@
-<p data-height="265" data-theme-id="dark" data-slug-hash="BfizE" data-default-tab="js,result" data-user="Tyriar" data-pen-title="Simple canvas trail effect" class="codepen">See the Pen <a href="https://codepen.io/Tyriar/pen/BfizE/">Simple canvas trail effect</a> by Daniel Imms (<a href="https://codepen.io/Tyriar">@Tyriar</a>) on <a href="https://codepen.io">CodePen</a>.</p>
-<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
