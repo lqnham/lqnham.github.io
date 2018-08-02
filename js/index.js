@@ -1,61 +1,109 @@
-var CANVAS_WIDTH = window.innerWidth;
-var CANVAS_HEIGHT = window.innerHeight;
+/**
+ * Configured commands can be found at the bottom of this file.
+ */
 
-var FPS = 60;
-    
-var canvas;
-var context;
-var dot;
+var terminal = {};
 
-init();
+terminal.init = function() {
+    document.addEventListener('keydown', terminal.event.keydown, false);
+    document.getElementById('console').innerHTML += '<p>Last login: ' + (new Date()).toUTCString() + ' on ttys000</p>';
+    this.newLine();
+};
+terminal.scrollDown = function() {
+    window.scrollTo(0, document.getElementById('console').clientHeight);
+};
+terminal.newLine = function() {
+    if (document.getElementsByClassName('line--active').length)
+        document.getElementsByClassName('line--active')[0].classList.remove('line--active');
+    document.getElementById('console').innerHTML += '<p class="line line--active" data-user="root" data-host="server" data-path="~"></p>';
+};
+terminal.addLine = function(content) {
+    var self = this;
+    document.getElementById('console').innerHTML += '<p>' + content + '</p>';
+    self.newLine();
+};
 
-function init() {
-  canvas = document.getElementById('canvas');
-  
-  if (canvas && canvas.getContext) {
-    context = canvas.getContext('2d');
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-  
-    createTrail();
-    
-    setInterval(loop, 1000 / FPS);
-  }
-}
+terminal.history = {};
+terminal.history.idx = null;
+terminal.history.data = [];
+terminal.history.add = function(cmd) {
+    terminal.history.idx = null;
+    terminal.history.data.push(cmd);
+};
+terminal.history.getLast = function(direction) {
+    if (terminal.history.idx === null)
+        terminal.history.idx = terminal.history.data.length;
+    if (direction === '-' && terminal.history.idx > 0)
+        terminal.history.idx--;
+    else if (direction === '+' && terminal.history.idx <= terminal.history.data.length - 1)
+        terminal.history.idx++;
+    return terminal.history.data[terminal.history.idx];
+};
 
-function createTrail() {
-  dot = {
-    x: 100, 
-    y: 100,
-    speed: 3,
-    direction: Math.PI * 2 * Math.random()
-  }
-}
+terminal.event = {};
+terminal.event.keydown = function(e) {
+    var self = terminal;
+    var char = e.key;
+    var line = document.getElementsByClassName('line--active')[0];
 
-function updatePosition() {
-  var dx = dot.x + dot.speed * Math.cos(dot.direction);
-  var dy = dot.y + dot.speed * Math.sin(dot.direction);
-  
-  if (dx < 0 || dx > CANVAS_WIDTH || dy < 0 || dy > CANVAS_HEIGHT) {
-    dot.direction = Math.PI * 2 * Math.random();
-    updatePosition();
-  } else {
-    dot.x = dx;
-    dot.y = dy;
-  }
-}
+    if (e.key === 'Backspace') {
+        line.innerText = line.innerText.substr(0, line.innerText.length - 1);
+        return;
+    } else if (e.key === 'Tab') {
+        e.preventDefault();
+        return;
+    } else if (e.key === 'Dead') {
+        char = '~';
+    } else if (e.key === 'ArrowUp') {
+        line.innerHTML = terminal.history.getLast('-') || '';
+        e.preventDefault();
+        return;
+    } else if (e.key === 'ArrowDown') {
+        line.innerHTML = terminal.history.getLast('+') || '';
+        e.preventDefault();
+        return;
+    } else if (e.key === 'Space') {
+        char = " ";
+    } else if (e.key === 'Enter') {
+        self.history.add(line.innerText);
+        self.command.exec(line.innerText);
+        return;
+    } else if (e.key.length > 1) {
+        return;
+    }
 
-function loop() {
-  updatePosition();
-  
-  // Draw over the whole canvas to create the trail effect
-  context.fillStyle = 'rgba(255, 255, 255, .05)';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Draw the dot
-  context.beginPath();
-  context.fillStyle = '#ff0000';
-  context.moveTo(dot.x, dot.y);
-  context.arc(dot.x, dot.y, 3, 0, Math.PI*2, true);
-  context.fill();
-}
+    line.innerText += char;
+};
+
+terminal.init();
+
+
+// Commands
+terminal.command = {};
+terminal.command.exec = function(cmd) {
+    if (terminal.command[cmd]) {
+        terminal.addLine(terminal.command[cmd]());
+    }
+    else if (terminal.command[cmd.split(' ')[0]]) {
+        var cmdArr = cmd.split(/ (.+)/, 2);
+        terminal.addLine(terminal.command[cmdArr[0]](cmdArr[1].split(' ')));
+    } else {
+        if (cmd == '') {
+            terminal.newLine();
+        } else {
+            terminal.addLine(cmd + ': command not found');
+        }
+    }
+};
+terminal.command.help = function() {
+    return 'How may I help you?';
+};
+terminal.command.echo = function(data) {
+    if (data === undefined)
+        return "Usage: echo [string...]";
+    return data;
+};
+terminal.command.exit = function() {
+    document.body.innerHTML = "";
+    return;
+};
